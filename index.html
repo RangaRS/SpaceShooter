@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="/three/build/three.js"></script>
+    <script src="/three/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="/scripts/Howler.min.js"></script>
+    <!-- <script src="/three/examples/js/controls/OrbitControls.js"></script> -->
+    <!-- <script src="/three/src/extras/PMREMGenerator.js"></script> -->
+    <!-- <script src="/three/examples/js/loaders/RGBELoader.js"></script> -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script> -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="controller" style="display: none;">
+        <input type="file" name="Upload Env Map" id="btnEnvMap" />
+        <input type="button" value="Start Game" onclick="startGame();">
+        <input type="button" value="stop Game" onclick="stopGame();">
+    </div> 
+    <div class="menuBox" id="mainmenu">
+        <div style="padding-bottom: 20px ;" id="instruction">
+            A rain of astroids are about to destroy your planet. Get your ass up there and protect your planet.
+            You have limited resources available with you to sustain this infinite mission.<br>
+            Our Engineers have designed your ship to generate necessary resources from the minerals available in space.
+            <ul>
+                <li>Red Minerals will help restore 10 health points</li>
+                <li>Blue Minerals will give you +10 bullets</li>
+                <li>Purple Minerals will give you +5 health points and +10 bullets</li>
+            </ul>
+            Use your resources wisely to sustain as long as possible.
+        </div>
+        <div id="menu">
+            <div class="card" onclick="startGame();" id="startgame">Start Game</div>
+            <!-- <div style="width: 49%;" class="card" id="startgame">Credits</div> -->
+        </div>
+    </div>
+    <div id="dashboard">
+        <div class="valueBar">
+            <span id="shipHealthText">PLANET HEALTH: 200</span>
+            <div id="ShipHealth"></div>
+        </div>
+        
+        <div class="card" id="details">
+            <div id="score">000</div>
+            <div id="scoretitle">SCORE</div>
+        </div>
+        <div class="valueBar">
+            <span id="bulletsText">BULLETS AVAILABLE: 50</span>
+            <div id="bullets"></div>
+        </div>
+    </div>
+
+    <div style="display: none;" class="menuBox" id="endCard">
+        <span>GAME OVER</span>
+        <span id="endScore"></span>
+        <div style="width: 49%;" class="card" onclick="startGame();">Play again</div>
+    </div>
+</body>
+<script src="main.js"></script>
+
+<script>
+
+    let scoreCard = document.getElementById('score'); 
+    let bulletsCard = document.getElementById('bullets'); 
+    let wHealthCard = document.getElementById('WorldHealth'); 
+    let sHealthCard = document.getElementById('ShipHealth'); 
+
+    const raycaster = new THREE.Raycaster();
+    const bullets2 = new THREE.Group();
+    const astroids2 = new THREE.Group();
+    const stars = new THREE.Group();
+    const mouse = new THREE.Vector2();
+
+    scene.add(bullets2, astroids2, stars);
+
+    let starGeo = new THREE.BoxGeometry(0.5,0.5,0.5);
+    let starMat = new THREE.MeshStandardMaterial({color: '#ffffff'});    
+    Models['star'] = new THREE.Mesh(starGeo, starMat);
+
+    let bulletGeo = new THREE.BoxGeometry(1.5,1.5,30);
+    let bulletMat = new THREE.MeshPhysicalMaterial({ color: "#5169dc", emissive: 0x5169dc });
+    Models['bullet'] = new THREE.Mesh(bulletGeo, bulletMat);
+    
+    gameArea = {
+        width:240,
+        height: 240*(9/16),
+        depth: 2000
+    }
+
+    gameData = {
+        started: false,
+        score: 0,
+        life: 200,
+        distance: 0,
+        bullets: 50
+    }
+
+    let elUpdateAnimation = (el)=> {
+        el.style.transform = "scale(1.3)";
+        setTimeout(()=> {
+            el.style.transform = "scale(1.0)";
+        }, 50);
+    }
+
+    let updateScore = (val=0)=> {
+        gameData.score+=val;
+        scoreCard.innerText = gameData.score;
+        elUpdateAnimation(scoreCard);
+    }
+    
+    
+    let updateLife = (val=0)=> {
+        gameData.life+=val;
+        
+        if(gameData.life <=0) {
+            gameData.life=0;
+            stopGame();
+        }
+        document.getElementById('shipHealthText').innerText = "PLANET HEALTH: " + gameData.life;
+        sHealthCard.style.width = `${gameData.life/200 * 100}%`;
+    }
+
+    
+
+    let updateBullets = (val=0)=> {
+        gameData.bullets+=val;
+        if(gameData.bullets >50) { gameData.bullets = 50};
+        if(gameData.bullets <0) { gameData.bullets = 0};
+        
+        document.getElementById('bulletsText').innerText = 'BULLETS AVAILABLE: ' + gameData.bullets;
+        bulletsCard.style.width = `${gameData.bullets/50 * 100}%`;
+    }
+
+
+    renderer.domElement.addEventListener('mousemove', event=> {
+        mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+        mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+        setTimeout(() => {
+            mouse.isMoving = false;
+        }, 250);
+    });
+
+
+    window.addEventListener('keydown', (e)=> {
+        if(e.key == 'q') { startGame(); }
+        if(e.key == 'e') { stopGame(); }
+    })
+
+
+    renderer.domElement.addEventListener('click', event=> {
+        shootBullet();
+    })
+
+
+    const rayGeo = new THREE.BoxGeometry( 0.25, 0.25, 600 );
+    const rayMat = new THREE.MeshBasicMaterial( {color: 0x0000ff} );
+    const ray = new THREE.Mesh( rayGeo, rayMat );
+    rayGeo.translate(0,0,-300)
+    
+    const playerObj = new THREE.Group();
+          playerObj.add( ray );
+          playerObj.position.set(0.1,0.1,0.1)
+          scene.add( playerObj );
+
+
+    let intersect = (obj)=> {
+        let origin = new THREE.Vector3(obj.position.x, obj.position.y, obj.position.z);
+        let direction = new THREE.Vector3(0,0,-1);
+
+        raycaster.set(origin,direction);
+        raycaster.far = 15;
+
+        astroids2.children.forEach(child=> {
+            const intersects = raycaster.intersectObjects( child.children );
+
+            if(intersects.length > 0) {
+
+                if(intersects[0].distance < 5) {
+
+                    bullets2.remove(obj);
+                    child.userData.health-=10;
+                    
+                    if(child.userData.health <= 0) {
+                        validateAstroid(child.userData.type);
+                        astroids2.remove(child);
+                        updateScore(1);
+                    }
+                    blastAudio.play();
+                    
+                    return true;
+                } else { return false }
+            } else { return false }
+        })
+    }
+
+
+    let shootBullet = ()=> {
+        let ball = Models.bullet.clone();
+
+        ball.position.set(
+            playerObj.position.x,
+            playerObj.position.y,
+            -10);
+
+        bullets2.add(ball);
+        shootAudio.play();
+        updateBullets(-1);
+    }
+
+    
+    
+
+    let generateAstroids = ()=> {
+        loopfunction = setInterval(() => {
+            // let astroid = models.rock.model.clone();
+            let d = Math.round(Math.random()*10);
+            let astroid = undefined;
+            
+            if(d < 7) {
+                astroid = Models.rocks.rock2.clone();
+                astroid.userData.type = 'regular'
+            } else if(d == 7) {
+                astroid = Models.rocks.rockBlue.clone();
+                astroid.userData.type = 'bullets';
+            } else if(d == 8) {
+                astroid = Models.rocks.rockRed.clone();
+                astroid.userData.type = 'health';
+            } else if(d >= 9) {
+                astroid = Models.rocks.rockPurple.clone();
+                astroid.userData.type = 'both';
+            }
+            
+            // astroid = randomProperty(Models.rocks).clone();
+            astroid.userData.spin = new THREE.Vector3(Math.random()/100, Math.random()/100, Math.random()/100);
+            astroid.userData.health = 20;
+            
+            let x = Math.random()*gameArea.width - gameArea.width/2;
+            let y = Math.random()*gameArea.height - gameArea.height/2;
+            
+            astroid.position.set(x.clamp(-100,100), 0, -gameArea.depth);
+            astroids2.add(astroid);
+        }, 1250);
+    }
+
+    let validateAstroid = (type)=> {
+        if(type == 'bullets') {
+            updateBullets(10);
+        } else if(type == 'health' && gameData.life < 200) {
+            updateLife(10);
+        } else if(type == 'both') {
+            updateBullets(5);
+            if(gameData.life < 200) { updateLife(5) };
+        }
+    }
+
+
+    let animateBullets = ()=> {
+        bullets2.children.forEach((bullet,i) => {
+            bullet.position.z-=5;
+            let isColloide = intersect(bullet);
+            if(bullet.position.z <-2000 || isColloide == true) {
+                bullets2.remove(bullet);
+            }
+        })
+    }
+
+
+    let animateAstroids = ()=> {
+        astroids2.children.forEach((astroid,i) => {
+            astroid.rotation.x+=astroid.userData.spin.x;
+            astroid.rotation.y+=astroid.userData.spin.y;
+            astroid.rotation.z+=astroid.userData.spin.z;
+
+            astroid.position.z+=3;
+            if(astroid.position.z > 100) {
+                astroids2.remove(astroid);
+                updateLife(-20);
+            }
+        })
+    }
+
+    let updatePlayer = ()=> {
+        let playerPos = {};
+        Object.assign(playerPos, playerObj.position);
+
+        let playerX = playerPos.x;
+        let playerY = playerPos.y;
+        let x = mouse.x*gameArea.width/1;
+        let y = mouse.y*gameArea.height/1.5;
+
+        var ang = vectorDirection([playerObj.position.x, playerObj.position.y], [x,y]);
+        var dist = vectorDistance([playerObj.position.x, playerObj.position.y], [x,y]);
+        
+        var displ = getDisplacement(0.008*dist,radOf(ang));
+        var nx = playerX + displ[0];
+        // var ny = playerY + displ[1];
+
+        playerObj.position.x = nx.clamp(-gameArea.width/2, gameArea.width/2);
+        // playerObj.position.y = ny.clamp(-gameArea.height/3, gameArea.height/3);
+
+        if( displ[0] > 0.5 || displ[0] < -0.5 ) {
+                let ds = displ[0] > 0 ? -0.008: 0.008;
+                let r  = playerObj.rotation.z + ds;
+                playerObj.rotation.z = r.clamp(-Math.PI/7, Math.PI/7);
+
+        } else { playerObj.rotation.z*=0.985 }
+        
+    }
+
+    let loopfunction = undefined
+
+    function startGame() {
+        document.getElementById('mainmenu').style.display = 'none';
+        document.getElementById('endCard').style.display = 'none';
+        models.spaceShip.model.userData.health = 5;
+        generateAstroids();
+        gameData.started = true;
+        bgmAudio.play();
+
+        gameData.bullets = 50;
+        gameData.life = 200;
+        gameData.score = 0;
+        updateBullets();
+        updateLife();
+        updateScore();
+    }
+    
+    function stopGame() {
+        clearInterval(loopfunction);
+        gameData.started = false;
+        bgmAudio.pause();
+
+        document.getElementById('endScore').innerText = `YOUR SCORE: ${gameData.score}`;
+        document.getElementById('endCard').style.display = 'block';
+
+    }
+
+    
+    setInterval(()=> {
+        let starMesh = Models.star.clone();
+
+        let x = Math.random()*gameArea.width - gameArea.width/2;
+        let y = Math.random()*gameArea.height - gameArea.height/2;
+        let z = -800;
+        
+        starMesh.position.set(x*5,y*5,z);
+        stars.add(starMesh);
+    }, 15);
+
+    
+    let animateStars = ()=> {
+        stars.children.forEach((star,i) => {
+            star.position.z+=3;
+            if(star.position.z > 100) {
+                stars.remove(star);
+            }
+        })
+    }
+
+    
+    const animate = function () {
+        updatePlayer();
+        animateBullets();
+        animateAstroids();
+        animateStars();
+
+        planetMesh.rotation.y-=0.0001;
+        planetMesh.rotation.x-=0.0001;
+        camera.lookAt(new THREE.Vector3(playerObj.position.x/12,playerObj.position.y/4, -50))
+        light.position.set(playerObj.position.x,50,playerObj.position.z + 100)
+        requestAnimationFrame( animate );
+        renderer.render( scene, camera );
+    };
+    
+    animate();
+</script>
+</html>
