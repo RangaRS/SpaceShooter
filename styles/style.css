@@ -1,0 +1,129 @@
+html, body {
+    padding: 0px;
+    margin: 0px;
+    font-family: 'Do Hyeon', sans-serif;
+}
+canvas {
+    cursor: none;
+}
+
+div#dashboard {
+    position: fixed;
+    bottom: 0px;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 3fr 1fr 3fr;
+    color: #fff;
+    align-items: self-end;
+}
+
+div#details {
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+
+}
+
+div.valueBar {
+    position: relative;
+    height: 25px;
+    width: 100%;
+    border-bottom: 1px solid #ffffff17;
+    background: linear-gradient(-45deg, #4c53583d, #95a9b31c, #38383830);
+    color: #ffffff;
+    border-right: 1px solid #ffffff17;
+    box-shadow: -1px -1px 0px 0px #3e3e3e;
+}
+
+div#ShipHealth {
+    background: #ff0000;
+    height: 25px;
+    transform: skew(20deg);
+    transition: 0.3s;
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    width: 100%;
+    padding: 0px 10px;
+    box-sizing: border-box;
+    z-index: 0;
+}
+
+span#shipHealthText {
+    text-align: right;
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translate(0px, -50%) ;
+    z-index: 1000;
+    width: 100%;
+}
+
+span#bulletsText {
+    width: 100%;
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translate(0px, -50%) ;
+    z-index: 1000;
+}
+
+div#bullets {
+    background: #5169dc;
+    height: 25px;
+    transform: skew(-20deg);
+    transition: 0.1s;
+    padding: 0px 10px;
+    z-index: 0;
+}
+
+div#scoretitle {
+    font-size: 15px;
+    color: #ff38ff;
+    transition: 0.3s;
+}
+
+/* div#bullets:before {
+    content: 'bullets';
+    font-size: 12px;
+    display: block;
+} */
+
+div#score {
+    font-size: 30px;
+    transition: 0.1s;
+}
+
+/* div#score:before {
+    content: 'score';
+    font-size: 12px;
+    display: block;
+} */
+
+.card {
+    display: inline-block;
+    width: 100%;
+    border-bottom: 1px solid #ffffff17;
+    background: linear-gradient(-45deg, #4c53583d, #95a9b31c, #38383830);
+    color: #ffffff;
+    border-right: 1px solid #ffffff17;
+    box-shadow: -1px -1px 0px 0px #3e3e3e;
+    font-size: 1rem;
+    box-sizing: border-box;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+}
+
+div.menuBox {
+    position: absolute;
+    width: 500px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%,-50%);
+    padding: 15px;
+    background: #161616db;
+    border-radius: 5px;
+    border: 2px solid #00316a85;
+    color: #fff;
+}

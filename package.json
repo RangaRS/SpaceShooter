@@ -1,0 +1,20 @@
+{
+  "name": "spaceshooter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "parcel index.html",
+    "build": "parcel build index.html --no-minify"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "howler": "^2.2.3",
+    "three": "^0.134.0"
+  },
+  "devDependencies": {
+    "cssnano": "^5.0.11",
+    "postcss": "^8.3.11"
+  }
+}
